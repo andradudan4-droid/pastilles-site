@@ -188,11 +188,76 @@ def phone_confirmed(messages) -> bool:
     )
 
 
-def lead_can_send(messages, lead_ready: bool) -> bool:
-    return bool(lead_ready and find_name(messages) and find_phone(messages) and phone_confirmed(messages))
+def has_job_details(messages):
+    text = customer_text(messages).lower()
+    return bool(
+        answer_after_prompt(messages, ["what needs doing", "looking to get done"]) or
+        re.search(r"\b(interior|exterior|painting|decorating|spray|wallpaper|stair|door|woodwork|commercial|room|wall)\b", text)
+    )
 
 
-def missing_lead_reply(messages):
+def has_scope_details(messages):
+    text = customer_text(messages).lower()
+    return bool(
+        answer_after_prompt(messages, ["roughly how big", "how many", "rough size", "scope"]) or
+        re.search(r"\b(room|rooms|wall|walls|door|doors|front|outside|stair|stairs|whole house|hallway|ceiling|woodwork)\b", text)
+    )
+
+
+def has_photo_context(messages, image_count=0):
+    text = customer_text(messages).lower()
+    return bool(image_count or re.search(r"\b(photo|photos|picture|pictures|attached|visit|come round|look at it)\b", text))
+
+
+def has_area_details(messages):
+    return bool(AREA_RE.search(customer_text(messages)) or answer_after_prompt(messages, ["town", "postcode", "area", "whereabouts"]))
+
+
+def has_budget_details(messages):
+    text = customer_text(messages).lower()
+    return bool(BUDGET_RE.search(text) or re.search(r"\b(no budget|not sure|don't know|dont know|unsure|need a quote)\b", text))
+
+
+def has_timing_details(messages):
+    text = customer_text(messages).lower()
+    return bool(TIMING_RE.search(text) or re.search(r"\b(today|tomorrow|asap|this weekend|next few days|next month)\b", text))
+
+
+def lead_details_complete(messages, image_count=0):
+    return bool(
+        has_job_details(messages) and
+        has_scope_details(messages) and
+        has_photo_context(messages, image_count) and
+        has_area_details(messages) and
+        has_budget_details(messages) and
+        has_timing_details(messages) and
+        find_name(messages) and
+        find_phone(messages) and
+        phone_confirmed(messages)
+    )
+
+
+def closing_reply(text):
+    return bool(re.search(r"\b(sam will be in touch|send this over|sent over|free quote|no-obligation quote|that's everything|thats everything)\b", text or "", re.I))
+
+
+def lead_can_send(messages, lead_ready: bool, image_count=0) -> bool:
+    return bool((lead_ready or closing_reply(messages[-1].get("content", ""))) and lead_details_complete(messages, image_count))
+
+
+def missing_lead_reply(messages, image_count=0):
+    if not has_job_details(messages):
+        return "Before I send it over, what exactly needs doing — interior, exterior, spray finishing or something else?"
+    if not has_scope_details(messages):
+        return "Could you give Sam a rough idea of the size — how many rooms, walls, doors or areas need doing?"
+    if not has_photo_context(messages, image_count):
+        return "Have you got a couple of photos you can attach here, or would you rather Sam arranges a visit?"
+    if not has_area_details(messages):
+        return "What town or postcode is the job in?"
+    if not has_budget_details(messages):
+        return "Do you have a rough budget in mind? No worries if not — just say if you're not sure yet."
+    if not has_timing_details(messages):
+        return "How soon are you hoping to get it done — urgent, tomorrow, this week, or no rush?"
     if not find_name(messages):
         return "Almost there — could I grab your name for Sam?"
     phone = find_phone(messages)
@@ -489,19 +554,24 @@ def chat():
     history = [m for m in data.get("messages", [])
                if m.get("role") in ("user", "assistant") and m.get("content")][-16:]
     reply = groq_reply(history)
+    lead_ready = "[[READY]]" in reply
     clean = reply.replace("[[READY]]", "").strip()
     conversation_for_email = history + [{"role": "assistant", "content": clean}]
-    # Send the lead as soon as we have a way to reach them (phone or email) plus a
-    # bit of conversation. The full transcript always goes in the email, so nothing
-    # is ever lost even if a field can't be auto-extracted.
-    contactable = bool(find_phone(conversation_for_email) or find_email(conversation_for_email))
-    enough = len(customer_text(conversation_for_email)) >= 12
-    if contactable and enough and not session.get("lead_sent"):
+    images = session_images.get(sid, [])
+    wants_finish = lead_ready or closing_reply(clean)
+    missing = missing_lead_reply(conversation_for_email, len(images)) if wants_finish else None
+    if missing:
+        clean = missing
+        wants_finish = False
+        conversation_for_email = history + [{"role": "assistant", "content": clean}]
+    if wants_finish and lead_details_complete(conversation_for_email, len(images)) and not session.get("lead_sent"):
         recap = clean or "Website enquiry - see conversation below."
-        ok = send_lead_email(conversation_for_email, recap, session_images.get(sid, []))
+        ok = send_lead_email(conversation_for_email, recap, images)
         if ok:
             session["lead_sent"] = True
         log.info("Lead trigger fired (emailed=%s)", ok)
+    elif wants_finish and not session.get("lead_sent"):
+        log.info("Lead handoff withheld: missing required lead details")
     return jsonify({"reply": clean})
 
 
