@@ -540,6 +540,17 @@ def send_photo_followup(image):
         return False
 
 
+def photo_upload_reply(messages, image_count, uploaded_count=1):
+    label = "photos" if uploaded_count != 1 else "photo"
+    intro = f"Thanks, got the {label} — that really helps Sam see the job."
+    if lead_details_complete(messages, image_count):
+        return "Brilliant — that's everything Sam needs. I've sent this over and he'll be in touch about your free, no-obligation quote."
+    missing = missing_lead_reply(messages, image_count)
+    if missing:
+        return f"{intro} You can add more photos if you like. If that's all for now, next question: {missing}"
+    return f"{intro} Is that all the photos for now, or would you like to add another?"
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     log.info("CHAT endpoint hit")
@@ -592,13 +603,22 @@ def upload():
     image = parse_image(data.get("image"))
     if not image:
         return jsonify({"reply": "Sorry, I couldn't read that photo. Please try a JPG, PNG or WebP image."}), 400
+    already_sent = bool(session.get("lead_sent"))
     images.append(image)
-    if session.get("lead_sent"):
+    history = [m for m in data.get("messages", [])
+               if m.get("role") in ("user", "assistant") and m.get("content")][-80:]
+    uploaded_count = max(1, min(int(data.get("uploaded_count") or 1), MAX_IMAGES_PER_SESSION))
+    reply = photo_upload_reply(history, len(images), uploaded_count)
+    if lead_details_complete(history, len(images)) and not session.get("lead_sent"):
+        conversation_for_email = history + [{"role": "assistant", "content": reply}]
+        ok = send_lead_email(conversation_for_email, reply, images)
+        if ok:
+            session["lead_sent"] = True
+        log.info("Lead trigger fired after photo upload (emailed=%s)", ok)
+    if already_sent:
         sent = send_photo_followup(image)
         log.info("Photo follow-up fired (emailed=%s)", sent)
-    return jsonify({
-        "reply": "Thanks, got the photo — that really helps Sam see the job. You can add another, or carry on with the details."
-    })
+    return jsonify({"reply": reply})
 
 
 @app.route("/_debug/email")
@@ -1534,6 +1554,7 @@ PAGE = r"""<!DOCTYPE html>
   async function handleFiles(input){
     var files=Array.from(input.files||[]);input.value='';if(!files.length)return;
     var attach=document.getElementById('attach');attach.classList.add('busy');
+    var finalReply='';
     for(var i=0;i<files.length;i++){
       var file=files[i];
       if(!file.type||file.type.indexOf('image/')!==0){add("That doesn't look like a photo — please choose an image.",'bot');continue;}
@@ -1542,14 +1563,14 @@ PAGE = r"""<!DOCTYPE html>
         addImage(dataUrl);
         chatMessages.push({role:'user',content:'(Customer attached a photo of the job)'});
         updateProgress();
-        var res=await fetch('/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({image:dataUrl})});
+        var res=await fetch('/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({image:dataUrl,messages:chatMessages,uploaded_count:files.length})});
         var data=await res.json();
-        var reply=(data&&data.reply)?data.reply:"Thanks, got the photo.";
-        add(reply,'bot');chatMessages.push({role:'assistant',content:reply});updateProgress();
+        finalReply=(data&&data.reply)?data.reply:"Thanks, got the photo. Is that all the photos for now?";
       }catch(e){
         add("Sorry, I couldn't upload that photo. Try a JPG or PNG, or send it to Sam by WhatsApp.",'bot');
       }
     }
+    if(finalReply){add(finalReply,'bot');chatMessages.push({role:'assistant',content:finalReply});updateProgress();}
     attach.classList.remove('busy');
   }
   async function sendMsg(){
