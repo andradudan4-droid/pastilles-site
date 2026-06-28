@@ -455,11 +455,30 @@ def send_lead_email(messages_or_transcript, recap, images=None):
 
 
 def send_photo_followup(image):
-    return send_lead_email(
-        "Customer attached an additional photo after the lead email was sent.",
-        "Additional photo for an existing Pastilles website enquiry.",
-        [image],
+    if not RESEND_API_KEY:
+        return False
+    html_body = (
+        "<div style='font-family:Arial,sans-serif;color:#111827'>"
+        "<h2 style='color:#0c1a2b'>Extra photo for a Pastilles enquiry</h2>"
+        "<p>A customer just added another photo to the enquiry you already received. "
+        "It's attached to this email.</p>"
+        "<p style='color:#888;font-size:13px'>Sent automatically by the Pastilles assistant.</p></div>"
     )
+    payload = {
+        "from": MAIL_FROM, "to": [NOTIFY_TO],
+        "subject": "Extra photo - Pastilles enquiry",
+        "html": html_body,
+        "text": "A customer added another photo to their Pastilles enquiry. It's attached.",
+        "attachments": [{"filename": image["filename"], "content": image["b64"]}],
+    }
+    try:
+        r = requests.post("https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json=payload, timeout=20)
+        return 200 <= r.status_code < 300
+    except Exception as e:  # pragma: no cover
+        log.error("Photo follow-up email failed: %s", e)
+        return False
 
 
 @app.route("/chat", methods=["POST"])
@@ -470,22 +489,19 @@ def chat():
     history = [m for m in data.get("messages", [])
                if m.get("role") in ("user", "assistant") and m.get("content")][-16:]
     reply = groq_reply(history)
-    lead_ready = "[[READY]]" in reply
     clean = reply.replace("[[READY]]", "").strip()
     conversation_for_email = history + [{"role": "assistant", "content": clean}]
-    missing_reply = missing_lead_reply(conversation_for_email) if lead_ready else None
-    if missing_reply:
-        clean = missing_reply
-        lead_ready = False
-        conversation_for_email = history + [{"role": "assistant", "content": clean}]
-    if lead_can_send(conversation_for_email, lead_ready) and not session.get("lead_sent"):
-        recap = clean or "Qualified website enquiry - see conversation below."
+    # Send the lead as soon as we have a way to reach them (phone or email) plus a
+    # bit of conversation. The full transcript always goes in the email, so nothing
+    # is ever lost even if a field can't be auto-extracted.
+    contactable = bool(find_phone(conversation_for_email) or find_email(conversation_for_email))
+    enough = len(customer_text(conversation_for_email)) >= 12
+    if contactable and enough and not session.get("lead_sent"):
+        recap = clean or "Website enquiry - see conversation below."
         ok = send_lead_email(conversation_for_email, recap, session_images.get(sid, []))
         if ok:
             session["lead_sent"] = True
         log.info("Lead trigger fired (emailed=%s)", ok)
-    elif lead_ready and not session.get("lead_sent"):
-        log.info("Lead READY withheld: missing name, phone confirmation or phone number")
     return jsonify({"reply": clean})
 
 
