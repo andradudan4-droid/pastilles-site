@@ -768,6 +768,12 @@ PAGE = r"""<!DOCTYPE html>
   .review-hero p{color:var(--ink);font-size:17px}
   .review-points{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
   .review-points span{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;color:var(--muted);font-size:13px}
+  .google-proof{margin:22px auto 30px;max-width:820px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:18px;display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;box-shadow:0 18px 44px rgba(12,26,43,.08)}
+  .google-proof .mark{width:48px;height:48px;border-radius:50%;background:#f8fafd;border:1px solid #e6eaf0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#4285f4}
+  .google-proof b{display:block;color:var(--navy);font-size:17px}
+  .google-proof span{display:block;margin-top:4px;color:var(--muted);font-size:14px}
+  .google-proof a{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:4px;background:var(--navy);color:#fff;padding:0 16px;font-weight:600;font-size:14px}
+  .google-proof a:hover{background:var(--gold);color:#1a130a}
   .rev{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
   .rev .q{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:28px;display:flex;flex-direction:column}
   .rev .stars{color:var(--gold);letter-spacing:3px;font-size:15px}
@@ -904,8 +910,12 @@ PAGE = r"""<!DOCTYPE html>
   @media(max-width:860px){
     nav .links{display:none}
     .burger{display:flex}
-    .hero .inner{grid-template-columns:1fr;padding:60px 24px 68px}
+    .hero .inner{grid-template-columns:1fr;padding:46px 24px 52px}
     .hero h1{font-size:42px}
+    .hero p.lead{margin-top:16px}
+    .hero .cta{margin-top:24px}
+    .hero .est{margin-top:18px}
+    .hero-proof{margin-top:16px}
     .hero .frame{display:none}
     .hero-proof{grid-template-columns:1fr}
     .stats .grid{grid-template-columns:1fr 1fr;gap:30px 24px}
@@ -919,6 +929,8 @@ PAGE = r"""<!DOCTYPE html>
     .why .grid{grid-template-columns:1fr 1fr}
     .grid-g{grid-template-columns:1fr 1fr}
     .case-grid,.review-hero{grid-template-columns:1fr}
+    .google-proof{grid-template-columns:auto 1fr;margin-top:18px}
+    .google-proof a{grid-column:1 / -1;width:100%}
     .leaflet-grid{grid-template-columns:1fr;gap:26px}
     .leaflet-grid h2{font-size:30px}
     .quote-panel .row{grid-template-columns:1fr 1fr}
@@ -929,7 +941,12 @@ PAGE = r"""<!DOCTYPE html>
   }
   @media(max-width:560px){
     .svc{grid-template-columns:1fr}
-    .hero h1{font-size:35px}
+    .hero .inner{padding:34px 18px 42px}
+    .hero h1{font-size:32px;margin-top:12px}
+    .hero p.lead{font-size:16px;line-height:1.55}
+    .hero .cta{gap:10px}
+    .hero .btn{width:100%;justify-content:center}
+    .hero-proof span{padding:10px 12px}
     .stats .n{font-size:40px}
     body{padding-bottom:74px}
     .clients .row{padding:14px 16px;gap:6px 14px}
@@ -1269,6 +1286,14 @@ PAGE = r"""<!DOCTYPE html>
     </div>
     <div style="text-align:center">
       <div class="gbadge reveal"><span class="g">G</span><span><span class="stars">★★★★★</span> &nbsp;<b>5.0</b> <span class="txt">· 32+ Google reviews</span></span></div>
+    </div>
+    <div class="google-proof reveal">
+      <div class="mark">G</div>
+      <div>
+        <b>Verified on Google</b>
+        <span>Read Pastilles Painting &amp; Decorating reviews directly on Google before you book.</span>
+      </div>
+      <a href="https://www.google.com/search?q=Pastilles+Painting+%26+Decorating+Google+reviews" target="_blank" rel="noopener">View Google reviews</a>
     </div>
     <div class="review-hero reveal">
       <div><div class="score">5.0</div><div class="stars">★★★★★</div></div>
