@@ -703,6 +703,8 @@ PAGE = r"""<!DOCTYPE html>
   .rev .stars{color:var(--gold);letter-spacing:3px;font-size:15px}
   .rev p{margin-top:14px;font-size:15.5px;color:var(--ink);flex:1}
   .rev .who{margin-top:18px;font-weight:600;font-size:14px;color:var(--muted)}
+  .rev .rev-photo{width:100%;height:190px;object-fit:cover;border-radius:6px;margin-bottom:16px;display:block}
+  .rev .who .gv{color:#9aa0a6;font-weight:500}
 
   .areas{text-align:center;background:var(--paper2)}
   .areas .pills{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:8px}
@@ -859,11 +861,15 @@ PAGE = r"""<!DOCTYPE html>
     .svc{grid-template-columns:1fr}
     .hero h1{font-size:35px}
     .stats .n{font-size:40px}
+    body{padding-bottom:74px}
+    .clients .row{padding:14px 16px;gap:6px 14px}
+    .clients .lbl{width:100%;text-align:center;margin-bottom:2px}
+    .clients .c{font-size:15px}
     .quote-panel .row{grid-template-columns:1fr}
     .wow-strip .row{grid-template-columns:1fr}
     #chat{height:100dvh;max-height:100dvh;width:100vw;max-width:100vw;right:0;bottom:0;border-radius:0;padding-bottom:env(safe-area-inset-bottom)}
     #bub{display:none!important}
-    #waWidget{left:14px;bottom:82px;width:48px;height:48px;font-size:22px}
+    #waWidget{right:14px;left:auto;bottom:calc(78px + env(safe-area-inset-bottom));width:50px;height:50px;font-size:23px}
     #waWidget span{display:none}
     #mobar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:59;background:var(--navy);padding:10px 12px;gap:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));border-top:1px solid rgba(198,162,83,.3)}
     #mobar a,#mobar button{flex:1;text-align:center;padding:13px;border-radius:4px;font-weight:600;font-size:15px;font-family:var(--sans);border:none;cursor:pointer}
@@ -1202,12 +1208,12 @@ PAGE = r"""<!DOCTYPE html>
       </div>
     </div>
     <div class="rev">
-      <div class="q reveal"><div class="stars">★★★★★</div><p>"Sam produced a really high quality of finish — I'd recommend him to anyone looking for a decorator, whether it's a new-build or a renovation."</p><div class="who">— Site Manager, Winchester</div></div>
-      <div class="q reveal"><div class="stars">★★★★★</div><p>"Sam and his team did a fantastic job — walls, ceilings, doors, frames and skirting all completed in a short time. Fantastic communication throughout."</p><div class="who">— Homeowner, Hampshire</div></div>
-      <div class="q reveal"><div class="stars">★★★★★</div><p>"Completed my family home to a high standard. Great value for money — would definitely use again."</p><div class="who">— Repeat customer</div></div>
-      <div class="q reveal"><div class="stars">★★★★★</div><p>"Sam and Sara did an excellent job to a high standard, finished for the price agreed. I'll be using them again and highly recommend them."</p><div class="who">— Homeowner</div></div>
-      <div class="q reveal"><div class="stars">★★★★★</div><p>"An amazing job on my house — really professional and clean, and a fair price. Highly recommend."</p><div class="who">— Homeowner, Southampton</div></div>
-      <div class="q reveal"><div class="stars">★★★★★</div><p>"They went above and beyond. Very clean working and a quality outcome from start to finish."</p><div class="who">— Homeowner</div></div>
+      <div class="q reveal"><div class="stars">★★★★★</div><p>"They recently sprayed our living room and the results are absolutely flawless. The finish is incredibly smooth and looks highly professional. The team was punctual, tidy and respectful of our home throughout. I cannot recommend their spraying enough!"</p><div class="who">— Mel Harbut <span class="gv">· Google</span></div></div>
+      <div class="q reveal"><img class="rev-photo" src="/static/review-kitchen.jpg" alt="Kitchen redecorated by Pastilles"><div class="stars">★★★★★</div><p>"Sam and Sarah redecorated our home after we'd had builders in to repair a leak. They completed the work before we needed to move back in and did a great job. We would use them again."</p><div class="who">— Louise Hannam <span class="gv">· Google</span></div></div>
+      <div class="q reveal"><img class="rev-photo" src="/static/review-door.jpg" alt="Front door sprayed anthracite grey by Pastilles"><div class="stars">★★★★★</div><p>"Painted our front door anthracite grey. Very happy with the result. Excellent attention to detail — highly recommended."</p><div class="who">— Oliver Goodley <span class="gv">· Google</span></div></div>
+      <div class="q reveal"><div class="stars">★★★★★</div><p>"Sam and his team painted our small toilet room — we're useless with gloss paint! They took genuine pride in it and even came back to add another coat because they felt it needed it. A real pleasure to have them around."</p><div class="who">— Katie Hall-May <span class="gv">· Google</span></div></div>
+      <div class="q reveal"><div class="stars">★★★★★</div><p>"Asked Sam to repair and repaint the wall and bar of our family restaurant. Having been knocked down by covid, Sam was very kind and understanding to accommodate our budget. Fantastic workmanship — both wall and bar look beautiful."</p><div class="who">— Mahesh Sharma <span class="gv">· Google</span></div></div>
+      <div class="q reveal"><div class="stars">★★★★★</div><p>"Absolutely fantastic service. Managed to fit me in at short notice. Great timekeeping and communication. Painting looks great and very professional. Dust sheets and prep used throughout. Highly recommended."</p><div class="who">— Stacey Axton <span class="gv">· Google</span></div></div>
     </div>
   </div>
 </section>
