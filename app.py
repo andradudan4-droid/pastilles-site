@@ -94,6 +94,7 @@ PHONE_RE = re.compile(r"(?<!\d)(?:\+44|0)\d[\d\s\-\.]{8,11}(?!\d)")
 YES_RE = re.compile(r"\b(yes|yeah|yep|correct|right|that's right|thats right|perfect|confirm|confirmed)\b", re.I)
 NAME_PREFIX_RE = re.compile(r"\b(?:my name is|name is|i am|i'm|im|this is)\s+([A-Za-z][A-Za-z' -]{1,40})", re.I)
 AREA_RE = re.compile(r"\b(southampton|winchester|eastleigh|fareham|havant|portsmouth|hampshire|surrey|bognor|poole|romsey|totton|lymington|andover|chichester)\b", re.I)
+POSTCODE_RE = re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d?[A-Z]{0,2}\b", re.I)
 BUDGET_RE = re.compile(r"(?:£\s?\d|budget|around\s+\d|about\s+\d|\d+\s?(?:pounds|quid|gbp))", re.I)
 TIMING_RE = re.compile(r"\b(urgent|asap|soon|this week|next week|month|no rush|not urgent|flexible|before|after|timeline|timing)\b", re.I)
 
@@ -210,17 +211,18 @@ def has_photo_context(messages, image_count=0):
 
 
 def has_area_details(messages):
-    return bool(AREA_RE.search(customer_text(messages)) or answer_after_prompt(messages, ["town", "postcode", "area", "whereabouts"]))
+    text = customer_text(messages)
+    return bool(AREA_RE.search(text) or POSTCODE_RE.search(text) or answer_after_prompt(messages, ["town", "postcode", "area", "whereabouts", "based"]))
 
 
 def has_budget_details(messages):
     text = customer_text(messages).lower()
-    return bool(BUDGET_RE.search(text) or re.search(r"\b(no budget|not sure|don't know|dont know|unsure|need a quote)\b", text))
+    return bool(BUDGET_RE.search(text) or answer_after_prompt(messages, ["budget"]) or re.search(r"\b(no budget|not sure|don't know|dont know|unsure|need a quote)\b", text))
 
 
 def has_timing_details(messages):
     text = customer_text(messages).lower()
-    return bool(TIMING_RE.search(text) or re.search(r"\b(today|tomorrow|asap|this weekend|next few days|next month)\b", text))
+    return bool(TIMING_RE.search(text) or answer_after_prompt(messages, ["how soon", "urgent", "timing", "when"]) or re.search(r"\b(today|tomorrow|asap|this weekend|next few days|next month)\b", text))
 
 
 def lead_details_complete(messages, image_count=0):
@@ -313,26 +315,11 @@ def scripted_reply(messages):
     """A sensible lead-capture flow used when Groq is unavailable, so the
     assistant always works and never goes silent."""
     all_user = customer_text(messages).strip()
-    all_chat = transcript_from(messages).lower()
-    phone = find_phone(messages)
     if not all_user or len(all_user) < 8:
         return "No problem — what needs doing? Interior, exterior, spray finishing, wallpapering, or something else?"
-    if "scope" not in all_chat and "how many" not in all_chat and "rough size" not in all_chat:
-        return "Got it. Roughly how big is the job — how many rooms, doors, stairs, or areas need doing?"
-    if "photo" not in all_chat and "visit" not in all_chat:
-        return "Have you got a couple of photos you can send by WhatsApp or email, or would you rather Sam arranges a visit?"
-    if "area" not in all_chat and "postcode" not in all_chat and "whereabouts" not in all_chat:
-        return "What town or postcode is the job in?"
-    if "budget" not in all_chat:
-        return "Do you have a rough budget in mind? No worries if not — it just helps Sam tailor the quote."
-    if "urgent" not in all_chat and "how soon" not in all_chat and "timing" not in all_chat:
-        return "How soon are you hoping to get it done — urgent, or no particular rush?"
-    if not find_name(messages):
-        return "Perfect. What name should Sam ask for?"
-    if not phone:
-        return "Could I grab the best phone number so Sam can contact you about the free quote?"
-    if not phone_confirmed(messages):
-        return f"Just to confirm, is {phone} the right number for Sam to contact you on?"
+    missing = missing_lead_reply(messages)
+    if missing:
+        return missing
     return ("Brilliant — that's everything Sam needs. I'll send this over now and he'll be in touch "
             "about your free, no-obligation quote.\n[[READY]]")
 
@@ -378,25 +365,32 @@ def lead_fields(messages, image_count=0):
     area_match = AREA_RE.search(text)
     if area_match:
         area = area_match.group(0).title()
+    postcode_match = POSTCODE_RE.search(text)
+    if postcode_match:
+        area = f"{postcode_match.group(0).upper()} ({area})" if area else postcode_match.group(0).upper()
     budget = None
     budget_match = BUDGET_RE.search(text)
     if budget_match:
         budget = budget_match.group(0)
+    if not budget:
+        budget = answer_after_prompt(messages, ["budget"])
     timing = None
     timing_match = TIMING_RE.search(text)
     if timing_match:
         timing = timing_match.group(0)
+    if not timing:
+        timing = answer_after_prompt(messages, ["how soon", "urgent", "timing", "when"])
 
     return {
         "Name": find_name(messages),
         "Phone": find_phone(messages),
         "Email": find_email(messages),
-        "Job / work wanted": answer_after_prompt(messages, ["what needs doing", "looking to get done"]) or "See conversation",
-        "Scope": answer_after_prompt(messages, ["roughly how big", "how many", "rough size"]) or "See conversation",
+        "Job / work wanted": answer_after_prompt(messages, ["what needs doing", "looking to get done"]) or answer_after_prompt(messages, ["interior", "exterior", "spray", "wallpaper"]) or "See conversation",
+        "Scope": answer_after_prompt(messages, ["roughly how big", "how many", "rough size", "scope"]) or "See conversation",
         "Photos": f"{image_count} attached" if image_count else answer_after_prompt(messages, ["photo", "visit"]) or "Not attached yet",
-        "Area": area or answer_after_prompt(messages, ["town", "postcode", "area", "whereabouts"]),
-        "Budget": budget or answer_after_prompt(messages, ["budget"]),
-        "Timing / urgency": timing or answer_after_prompt(messages, ["how soon", "urgent", "timing"]),
+        "Area": area or answer_after_prompt(messages, ["town", "postcode", "area", "whereabouts", "based"]),
+        "Budget": budget,
+        "Timing / urgency": timing,
     }
 
 
@@ -552,17 +546,30 @@ def chat():
     sid = ensure_session_id()
     data = request.get_json(force=True, silent=True) or {}
     history = [m for m in data.get("messages", [])
-               if m.get("role") in ("user", "assistant") and m.get("content")][-16:]
+               if m.get("role") in ("user", "assistant") and m.get("content")][-80:]
+    images = session_images.get(sid, [])
+    final_reply = "Brilliant — that's everything Sam needs. I've sent this over and he'll be in touch about your free, no-obligation quote."
+    if lead_details_complete(history, len(images)):
+        conversation_for_email = history + [{"role": "assistant", "content": final_reply}]
+        if not session.get("lead_sent"):
+            ok = send_lead_email(conversation_for_email, final_reply, images)
+            if ok:
+                session["lead_sent"] = True
+            log.info("Lead trigger fired before AI reply (emailed=%s)", ok)
+        return jsonify({"reply": final_reply})
     reply = groq_reply(history)
     lead_ready = "[[READY]]" in reply
     clean = reply.replace("[[READY]]", "").strip()
     conversation_for_email = history + [{"role": "assistant", "content": clean}]
-    images = session_images.get(sid, [])
     wants_finish = lead_ready or closing_reply(clean)
     missing = missing_lead_reply(conversation_for_email, len(images)) if wants_finish else None
     if missing:
         clean = missing
         wants_finish = False
+        conversation_for_email = history + [{"role": "assistant", "content": clean}]
+    elif lead_details_complete(conversation_for_email, len(images)):
+        clean = final_reply
+        wants_finish = True
         conversation_for_email = history + [{"role": "assistant", "content": clean}]
     if wants_finish and lead_details_complete(conversation_for_email, len(images)) and not session.get("lead_sent"):
         recap = clean or "Website enquiry - see conversation below."
@@ -1476,15 +1483,16 @@ PAGE = r"""<!DOCTYPE html>
   /* chat */
   var chatMessages=[];var started=false;
   function userText(){return chatMessages.filter(function(m){return m.role==='user'}).map(function(m){return m.content}).join(' ').toLowerCase();}
+  function chatText(){return chatMessages.map(function(m){return m.content}).join(' ').toLowerCase();}
   function hasPhone(t){return /(?:\+44|0)\d[\d\s\-.]{8,11}/.test(t);}
   function hasName(){for(var i=0;i<chatMessages.length;i++){var m=chatMessages[i];if(m.role==='assistant'&&/name/i.test(m.content)){for(var j=i+1;j<chatMessages.length;j++){if(chatMessages[j].role==='user'&&!/photo|^\s*(yes|yeah|yep|correct|right)\s*$/i.test(chatMessages[j].content)){return true;}}}}return /\b(my name is|i am|i'm|im|this is)\s+[a-z]/i.test(userText());}
   function updateProgress(){
-    var t=userText();
+    var t=userText(), all=chatText();
     var done=[
-      t.length>8,
+      /interior|exterior|painting|decorating|spray|wallpaper|commercial|wall|room|stair|door/.test(t),
       /photo|visit|attached/.test(t),
-      /southampton|winchester|eastleigh|fareham|havant|hampshire|surrey|postcode|area/.test(t),
-      /£|\bbudget\b|\bno budget\b|\bnot sure\b|around \d|about \d/.test(t),
+      /southampton|winchester|eastleigh|fareham|havant|portsmouth|hampshire|surrey|postcode|area|\b[a-z]{1,2}\d[a-z\d]?\b/i.test(t),
+      /£|\bbudget\b|\bno budget\b|\bnot sure\b|around \d|about \d|\b\d{2,5}\b/.test(t) && /budget|quote|price|cost|£|around|about|\b\d{2,5}\b/.test(all),
       hasPhone(t)&&hasName()
     ];
     document.querySelectorAll('#progress span').forEach(function(el,i){el.classList.toggle('done',!!done[i]);});
