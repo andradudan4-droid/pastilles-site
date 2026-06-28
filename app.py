@@ -625,7 +625,7 @@ PAGE = r"""<!DOCTYPE html>
 <meta name="theme-color" content="#0c1a2b">
 <meta property="og:title" content="Pastilles Painting & Decorating">
 <meta property="og:description" content="Exceptional finishes. Timeless spaces. Family-run painters & decorators since 1998.">
-<link rel="icon" href="https://pastillespainting.co.uk/wp-content/uploads/2024/03/cropped-pastilles-logo-270x270.webp">
+<link rel="icon" href="/static/pastilles-new-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -653,7 +653,7 @@ PAGE = r"""<!DOCTYPE html>
   nav{position:sticky;top:0;z-index:50;background:rgba(12,26,43,.92);backdrop-filter:blur(10px);border-bottom:1px solid rgba(198,162,83,.22)}
   nav .row{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;max-width:1140px;margin:0 auto}
   nav .brand{display:flex;align-items:center;gap:12px}
-  nav .brand img{height:44px;width:auto;display:block}
+  nav .brand img{height:52px;width:52px;object-fit:cover;display:block;border-radius:4px;border:1px solid rgba(198,162,83,.38)}
   nav .brand .nm{font-family:var(--serif);color:#fff;font-size:19px;font-weight:600;letter-spacing:.04em;line-height:1}
   nav .brand .nm small{display:block;font-family:var(--sans);font-size:9px;letter-spacing:.26em;color:var(--gold);margin-top:3px}
   nav .links{display:flex;align-items:center;gap:26px}
@@ -941,6 +941,7 @@ PAGE = r"""<!DOCTYPE html>
   }
   @media(max-width:560px){
     .svc{grid-template-columns:1fr}
+    nav .brand img{height:42px;width:42px}
     .hero .inner{padding:34px 18px 42px}
     .hero h1{font-size:32px;margin-top:12px}
     .hero p.lead{font-size:16px;line-height:1.55}
@@ -970,7 +971,7 @@ PAGE = r"""<!DOCTYPE html>
 <nav>
   <div class="row">
     <a class="brand" href="#top">
-      <img src="https://pastillespainting.co.uk/wp-content/uploads/2024/03/pastilles-logo-cropped-300x237.png" alt="Pastilles logo">
+      <img src="/static/pastilles-new-logo.png" alt="Pastilles Painting and Decorating logo">
       <span class="nm">PASTILLES<small>PAINTING &amp; DECORATING</small></span>
     </a>
     <div class="links">
